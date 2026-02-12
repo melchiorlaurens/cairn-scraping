@@ -35,6 +35,10 @@ if not doc:
     st.error(f"Ouvrage non trouvé (ID: {doc_id})")
     st.stop()
 
+# Bouton retour
+if st.button("← Retour à la recherche"):
+    st.switch_page("pages/1_recherche.py")
+
 # Affichage de la fiche
 st.title("📖 Fiche Ouvrage")
 
@@ -113,7 +117,3 @@ st.markdown("## 📝 Description")
 description = doc.get("description", "Aucune description disponible.")
 st.markdown(description)
 
-# Bouton retour
-st.divider()
-if st.button("← Retour à la recherche"):
-    st.switch_page("pages/1_🔍_Recherche.py")

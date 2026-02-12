@@ -76,45 +76,44 @@ else:
 st.divider()
 
 # 3. Distribution des prix (Histogram)
-col1, col2 = st.columns(2)
+st.markdown("### 💰 Distribution des prix")
+if aggs["prix_histogram"]:
+    prix_df = pd.DataFrame(aggs["prix_histogram"])
+    prix_df["key"] = prix_df["key"].astype(float)
 
-with col1:
-    st.markdown("### 💰 Distribution des prix")
-    if aggs["prix_histogram"]:
-        prix_df = pd.DataFrame(aggs["prix_histogram"])
-        prix_df["key"] = prix_df["key"].astype(float)
-        
-        fig_prix = px.bar(
-            prix_df,
-            x="key",
-            y="doc_count",
-            title="Répartition par tranche de prix (10€)",
-            labels={"key": "Prix (€)", "doc_count": "Nombre d'ouvrages"},
-            color="doc_count",
-            color_continuous_scale="Greens",
-        )
-        st.plotly_chart(fig_prix, use_container_width=True)
-    else:
-        st.info("Aucune donnée de prix disponible.")
+    fig_prix = px.bar(
+        prix_df,
+        x="key",
+        y="doc_count",
+        title="Répartition par tranche de prix (10€)",
+        labels={"key": "Prix (€)", "doc_count": "Nombre d'ouvrages"},
+        color="doc_count",
+        color_continuous_scale="Greens",
+    )
+    st.plotly_chart(fig_prix, use_container_width=True)
+else:
+    st.info("Aucune donnée de prix disponible.")
 
-with col2:
-    st.markdown("### 📄 Distribution du nombre de pages")
-    if aggs["pages_histogram"]:
-        pages_df = pd.DataFrame(aggs["pages_histogram"])
-        pages_df["key"] = pages_df["key"].astype(int)
-        
-        fig_pages = px.bar(
-            pages_df,
-            x="key",
-            y="doc_count",
-            title="Répartition par tranche de pages (100 p.)",
-            labels={"key": "Nombre de pages", "doc_count": "Nombre d'ouvrages"},
-            color="doc_count",
-            color_continuous_scale="Oranges",
-        )
-        st.plotly_chart(fig_pages, use_container_width=True)
-    else:
-        st.info("Aucune donnée de pages disponible.")
+st.divider()
+
+# 4. Distribution du nombre de pages
+st.markdown("### 📄 Distribution du nombre de pages")
+if aggs["pages_histogram"]:
+    pages_df = pd.DataFrame(aggs["pages_histogram"])
+    pages_df["key"] = pages_df["key"].astype(int)
+
+    fig_pages = px.bar(
+        pages_df,
+        x="key",
+        y="doc_count",
+        title="Répartition par tranche de pages (100 p.)",
+        labels={"key": "Nombre de pages", "doc_count": "Nombre d'ouvrages"},
+        color="doc_count",
+        color_continuous_scale="Oranges",
+    )
+    st.plotly_chart(fig_pages, use_container_width=True)
+else:
+    st.info("Aucune donnée de pages disponible.")
 
 st.divider()
 

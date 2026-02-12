@@ -70,7 +70,7 @@ def render_ouvrage_card(hit: dict) -> None:
                 if theme:
                     st.markdown(f"🏷️ {theme}")
             with col_btn:
-                st.link_button("📖 Voir la fiche", f"/Fiche?doc_id={doc_id}")
+                st.link_button("📖 Voir la fiche", f"/fiche?doc_id={doc_id}")
         
         st.divider()
 

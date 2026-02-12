@@ -6,44 +6,50 @@ import streamlit as st
 
 # Configuration de la page
 st.set_page_config(
-    page_title="Cairn Ouvrages - Recherche",
+    page_title="Cairn Ouvrages",
     page_icon="📚",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# En-tête de l'application
-st.title("📚 Cairn Ouvrages")
-st.markdown("### Système de recherche et d'analyse d'ouvrages académiques")
 
-# Page d'accueil
-st.markdown("""
-Bienvenue dans l'application de recherche d'ouvrages Cairn.info !
+def home():
+    st.title("📚 Cairn Ouvrages")
+    st.markdown("### Système de recherche et d'analyse d'ouvrages académiques")
 
-Cette application vous permet de :
-- 🔍 **Rechercher** des ouvrages par titre, auteur ou description
-- 📖 **Consulter** les fiches détaillées des ouvrages
-- 📊 **Visualiser** des statistiques sur le catalogue
+    st.markdown("""
+    Bienvenue dans l'application de recherche d'ouvrages Cairn.info !
 
-Utilisez le menu latéral pour naviguer entre les différentes sections.
-""")
+    Cette application vous permet de :
+    - 🔍 **Rechercher** des ouvrages par titre, auteur ou description
+    - 📖 **Consulter** les fiches détaillées des ouvrages
+    - 📊 **Visualiser** des statistiques sur le catalogue
 
-# Statistiques rapides en sidebar
-st.sidebar.title("Navigation")
-st.sidebar.markdown("Utilisez les pages ci-dessus pour explorer le catalogue.")
+    Utilisez le menu latéral pour naviguer entre les différentes sections.
+    """)
+
+
+pg = st.navigation([
+    st.Page(home, title="Accueil", icon="📚", default=True),
+    st.Page("pages/1_recherche.py", title="Recherche", icon="🔍"),
+    st.Page("pages/2_fiche.py", title="Fiche", icon="📖"),
+    st.Page("pages/3_statistiques.py", title="Statistiques", icon="📊"),
+])
 
 # Informations projet
 with st.sidebar.expander("ℹ️ À propos"):
     st.markdown("""
     **Projet E4 Data Engineering**
-    
+
     Développé par :
     - Melchior Laurens (Backend)
     - Kévin Feltrin (Frontend)
-    
+
     Technologies :
     - Scrapy (collecte)
     - MongoDB (stockage)
     - Elasticsearch (recherche)
     - Streamlit (interface)
     """)
+
+pg.run()
