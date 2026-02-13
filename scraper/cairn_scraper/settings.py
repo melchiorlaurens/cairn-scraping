@@ -11,13 +11,13 @@ USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 ROBOTSTXT_OBEY = False
-DOWNLOAD_DELAY = 1
+DOWNLOAD_DELAY = float(os.getenv("SCRAPE_DOWNLOAD_DELAY", 1))
 CONCURRENT_REQUESTS = 8
 CONCURRENT_REQUESTS_PER_DOMAIN = 2
 
-# Scraping limits (0 = unlimited)
-SCRAPE_MAX_PAGES = 0
-SCRAPE_MAX_ITEMS_PER_THEME = 200
+# Scraping limits (-1 = no limit)
+SCRAPE_MAX_PAGES = int(os.getenv("SCRAPE_MAX_PAGES", -1))
+SCRAPE_MAX_ITEMS_PER_THEME = int(os.getenv("SCRAPE_MAX_ITEMS_PER_THEME", 200))
 
 # Pipelines
 ITEM_PIPELINES = {

@@ -25,8 +25,8 @@ class OuvragesSpider(scrapy.Spider):
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
         spider = super().from_crawler(crawler, *args, **kwargs)
-        spider.max_pages = crawler.settings.getint("SCRAPE_MAX_PAGES", 0)
-        spider.max_per_theme = crawler.settings.getint("SCRAPE_MAX_ITEMS_PER_THEME", 0)
+        spider.max_pages = crawler.settings.getint("SCRAPE_MAX_PAGES", -1)
+        spider.max_per_theme = crawler.settings.getint("SCRAPE_MAX_ITEMS_PER_THEME", -1)
         spider.theme_counts = {}
         return spider
 
@@ -48,7 +48,7 @@ class OuvragesSpider(scrapy.Spider):
         items_per_page = len(links)
 
         # only keep links within the per-theme quota
-        if self.max_per_theme > 0:
+        if self.max_per_theme >= 0:
             remaining = self.max_per_theme - self.theme_counts[theme]
             if remaining <= 0:
                 return
@@ -66,9 +66,9 @@ class OuvragesSpider(scrapy.Spider):
 
         last_page = self._extract_last_page(response) or 1
         end = last_page
-        if self.max_pages > 0:
+        if self.max_pages >= 0:
             end = min(end, self.max_pages)
-        if self.max_per_theme > 0 and items_per_page > 0:
+        if self.max_per_theme >= 0 and items_per_page > 0:
             end = min(end, -(-self.max_per_theme // items_per_page))
 
         for p in range(2, end + 1):
@@ -80,7 +80,7 @@ class OuvragesSpider(scrapy.Spider):
 
     def parse_ouvrage(self, response, theme):
         # skip if we already hit the limit for this theme
-        if self.max_per_theme > 0 and self.theme_counts.get(theme, 0) >= self.max_per_theme:
+        if self.max_per_theme >= 0 and self.theme_counts.get(theme, 0) >= self.max_per_theme:
             return
 
         item = OuvrageItem()
