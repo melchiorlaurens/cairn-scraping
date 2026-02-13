@@ -14,15 +14,15 @@ if str(webapp_dir) not in sys.path:
 from utils.es_client import ESClient
 from utils.components import render_ouvrage_card, render_sidebar_filters, render_pagination
 
-# Titre
-st.title("🔍 Recherche d'ouvrages")
-
 # Initialisation du client Elasticsearch
 @st.cache_resource
 def get_es_client():
     return ESClient()
 
 es_client = get_es_client()
+
+# Titre
+st.title("🔍 Recherche d'ouvrages")
 
 # Initialisation du session state pour la pagination
 if "search_page" not in st.session_state:
@@ -86,11 +86,11 @@ else:
     start = (page - 1) * size + 1
     end = min(page * size, total)
     st.markdown(f"**{total} résultat(s) trouvé(s)** — Affichage de {start} à {end}")
-    
+
     # Affichage des cartes d'ouvrages
     for hit in hits:
         render_ouvrage_card(hit)
-    
+
     # Pagination
     new_page = render_pagination(total, page, size)
     if new_page != page:

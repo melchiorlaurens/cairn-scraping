@@ -169,9 +169,8 @@ cairn-scraping/
 ├── webapp/                     # Streamlit web application
 │   ├── app.py                 # Home page (landing + navigation)
 │   ├── pages/
-│   │   ├── 1_recherche.py     # Search page: full-text + faceted filters
-│   │   ├── 2_fiche.py         # Detail view: complete book metadata
-│   │   └── 3_statistiques.py  # Analytics: charts & distributions
+│   │   ├── 1_recherche.py     # Search page: full-text + faceted filters + detail dialog
+│   │   └── 2_statistiques.py  # Analytics: charts & distributions
 │   ├── utils/
 │   │   ├── es_client.py       # ESClient: search, aggregations, get by ID
 │   │   └── components.py      # Reusable UI components (cards, filters)

@@ -70,9 +70,92 @@ def render_ouvrage_card(hit: dict) -> None:
                 if theme:
                     st.markdown(f"🏷️ {theme}")
             with col_btn:
-                st.link_button("📖 Voir la fiche", f"/fiche?doc_id={doc_id}")
+                if st.button("📖 Voir la fiche", key=f"fiche_{doc_id}"):
+                    show_ouvrage_dialog(doc_id)
         
         st.divider()
+
+
+@st.dialog("📖 Fiche Ouvrage", width="large")
+def show_ouvrage_dialog(doc_id: str) -> None:
+    """
+    Affiche la fiche détaillée d'un ouvrage dans un dialog modal.
+    """
+    from utils.es_client import ESClient
+
+    @st.cache_resource
+    def get_es_client():
+        return ESClient()
+
+    doc = get_es_client().get_by_id(doc_id)
+
+    if not doc:
+        st.error(f"Ouvrage non trouvé (ID: {doc_id})")
+        return
+
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        if doc.get("image_url"):
+            try:
+                st.image(doc["image_url"], use_container_width=True)
+            except Exception:
+                st.markdown("### 📚")
+        else:
+            st.markdown("### 📚")
+
+        if doc.get("url"):
+            st.markdown(f"[🔗 Voir sur Cairn.info]({doc['url']})")
+
+    with col2:
+        title = doc.get("title", "Sans titre")
+        subtitle = doc.get("subtitle", "")
+
+        st.markdown(f"### {title}")
+        if subtitle:
+            st.markdown(f"#### *{subtitle}*")
+
+        st.divider()
+
+        authors = doc.get("authors", [])
+        if authors:
+            st.markdown(f"**Auteur(s) :** {', '.join(authors)}")
+
+        editeur = doc.get("editeur", "")
+        collection = doc.get("collection", "")
+        if editeur:
+            st.markdown(f"**Éditeur :** {editeur}")
+        if collection:
+            st.markdown(f"**Collection :** {collection}")
+
+        date_parution = doc.get("date_parution", "")
+        date_mise_en_ligne = doc.get("date_mise_en_ligne", "")
+        if date_parution:
+            st.markdown(f"**Date de parution :** {date_parution}")
+        if date_mise_en_ligne:
+            st.markdown(f"**Mise en ligne :** {date_mise_en_ligne}")
+
+        isbn = doc.get("isbn", "")
+        theme = doc.get("theme", "")
+        if isbn:
+            st.markdown(f"**ISBN :** {isbn}")
+        if theme:
+            st.markdown(f"**Thème :** 🏷️ {theme}")
+
+        price = doc.get("price")
+        pages = doc.get("pages")
+        info = []
+        if price is not None:
+            info.append(f"**Prix :** {float(price):.2f} €")
+        if pages is not None:
+            info.append(f"**Nombre de pages :** {pages}")
+        if info:
+            st.markdown(" | ".join(info))
+
+    st.divider()
+    st.markdown("### 📝 Description")
+    description = doc.get("description", "Aucune description disponible.")
+    st.markdown(description)
 
 
 def render_sidebar_filters(
