@@ -63,6 +63,7 @@ class OuvragesSpider(scrapy.Spider):
 
         spider.theme_base_urls = {}
         spider.theme_counts = {}
+        spider.theme_pending_counts = {}
         spider.theme_page_progress = {}
         spider.backfill_target_end_page = {}
         spider.scheduled_new_items = 0
@@ -79,6 +80,7 @@ class OuvragesSpider(scrapy.Spider):
         for theme_name, url in self.THEME_URLS:
             self.theme_base_urls[theme_name] = url
             self.theme_counts[theme_name] = 0
+            self.theme_pending_counts[theme_name] = 0
 
             start_page = 1
             if self.run_mode == "backfill":
@@ -173,7 +175,9 @@ class OuvragesSpider(scrapy.Spider):
                 unknown_entries.append(entry)
 
         if self.max_per_theme >= 0:
-            remaining = self.max_per_theme - self.theme_counts[theme]
+            remaining = self.max_per_theme - (
+                self.theme_counts[theme] + self.theme_pending_counts[theme]
+            )
             if remaining <= 0:
                 self.theme_page_progress[theme]["stopped_reason"] = "max_per_theme reached"
                 self._persist_theme_state(theme)
@@ -191,9 +195,11 @@ class OuvragesSpider(scrapy.Spider):
 
         for entry in unknown_entries:
             self.scheduled_new_items += 1
+            self.theme_pending_counts[theme] += 1
             yield scrapy.Request(
                 entry["url"],
                 callback=self.parse_ouvrage,
+                errback=self.parse_ouvrage_error,
                 cb_kwargs={"theme": theme},
             )
 
@@ -221,6 +227,7 @@ class OuvragesSpider(scrapy.Spider):
         )
 
     def parse_ouvrage(self, response, theme):
+        self._consume_pending_slot(theme)
         if self.max_per_theme >= 0 and self.theme_counts.get(theme, 0) >= self.max_per_theme:
             return
 
@@ -263,6 +270,14 @@ class OuvragesSpider(scrapy.Spider):
 
         self.theme_counts[theme] += 1
         yield item
+
+    def parse_ouvrage_error(self, failure):
+        theme = failure.request.cb_kwargs.get("theme", "")
+        self._consume_pending_slot(theme)
+
+    def _consume_pending_slot(self, theme):
+        if theme in self.theme_pending_counts and self.theme_pending_counts[theme] > 0:
+            self.theme_pending_counts[theme] -= 1
 
     def closed(self, reason):
         summary = self._build_run_summary(reason)
@@ -334,6 +349,11 @@ class OuvragesSpider(scrapy.Spider):
 
         if self.max_pages >= 0 and progress["pages_scanned"] >= self.max_pages:
             return "SCRAPE_MAX_PAGES reached"
+
+        if self.max_per_theme >= 0:
+            total_scheduled_or_scraped = self.theme_counts[theme] + self.theme_pending_counts[theme]
+            if total_scheduled_or_scraped >= self.max_per_theme:
+                return "max_per_theme reached"
 
         if last_page_on_site is not None and page >= last_page_on_site:
             return "reached last page on site"
