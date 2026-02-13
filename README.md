@@ -84,6 +84,8 @@ All settings go in your `.env` file. Copy `.env.example` to get started.
 | `SCRAPE_MAX_ITEMS_PER_THEME` | `200` | Max books to scrape per theme. `-1` for no limit. |
 | `SCRAPE_DOWNLOAD_DELAY` | `1` | Seconds to wait between requests (be nice to Cairn). |
 
+With the defaults (200 items per theme × 3 themes = 600 ouvrages), scraping takes about 5 minutes.
+
 ## Development
 
 For working on the code outside Docker.
