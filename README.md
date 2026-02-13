@@ -78,6 +78,14 @@ Use the **Scraping** page in the webapp (sidebar navigation) to launch backgroun
 - **Récupérer les nouveautés** (`latest`)
 - **Récupérer plus** (`backfill`)
 
+### 4. (Optional) Run the spider manually
+
+You can also run a one-shot scrape directly from the CLI:
+
+```bash
+cd scraper && uv run scrapy crawl ouvrages
+```
+
 ## Webapp Scraping Helper
 
 The project includes a dedicated helper page in Streamlit: **Scraping** (`webapp/pages/3_scraping.py`).
