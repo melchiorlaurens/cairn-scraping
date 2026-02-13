@@ -22,7 +22,6 @@ def home():
 
     Cette application vous permet de :
     - 🔍 **Rechercher** des ouvrages par titre, auteur ou description
-    - 📖 **Consulter** les fiches détaillées des ouvrages
     - 📊 **Visualiser** des statistiques sur le catalogue
 
     Utilisez le menu latéral pour naviguer entre les différentes sections.
@@ -32,8 +31,7 @@ def home():
 pg = st.navigation([
     st.Page(home, title="Accueil", icon="📚", default=True),
     st.Page("pages/1_recherche.py", title="Recherche", icon="🔍"),
-    st.Page("pages/2_fiche.py", title="Fiche", icon="📖"),
-    st.Page("pages/3_statistiques.py", title="Statistiques", icon="📊"),
+    st.Page("pages/2_statistiques.py", title="Statistiques", icon="📊"),
 ])
 
 # Informations projet
