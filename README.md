@@ -2,7 +2,7 @@
 
 E4 Data Engineering projet — Scraping [cairn.info](https://cairn.info) — Melchior Laurens & Kévin Feltrin
 
-Scrapy spider that collects academic books from Cairn.info, stores them in **MongoDB** and **Elasticsearch**, and exposes them through a **Streamlit** webapp with search, detail views, and statistics dashboards.
+Scrapy spider that collects academic books from Cairn.info, stores them in **MongoDB** and **Elasticsearch**, and exposes them through a **Streamlit** webapp with search, detail views, statistics dashboards, and a built-in **Scraping helper** page to launch background crawl jobs.
 
 ## Architecture
 
@@ -34,6 +34,11 @@ We chose **Scrapy** for scraping because it handles pagination, rate limiting, a
    - Streamlit pages render results with interactive filters and pagination
    - Charts built with Plotly (distributions, trends, top authors/publishers)
 
+4. **Background Scraping API** (`scripts/scraper_worker.py`)
+   - Lightweight HTTP worker in the `scraper` container
+   - Endpoints to launch jobs: `latest` and `backfill`
+   - Streamlit page calls this API and shows job status
+
 ### Key Components
 
 | Component | Technology | Purpose |
@@ -41,7 +46,8 @@ We chose **Scrapy** for scraping because it handles pagination, rate limiting, a
 | **Spider** | Scrapy | Crawls cairn.info, extracts book metadata |
 | **Pipelines** | pymongo + elasticsearch-py | Dual storage: MongoDB (backup) + ES (search) |
 | **Index mapping** | Elasticsearch | French analyzer for titles/descriptions, keyword fields for filters |
-| **Web app** | Streamlit | Interactive search UI with facets and analytics dashboard |
+| **Web app** | Streamlit | Search UI + stats dashboard + scraping helper controls |
+| **Scraper worker API** | Python stdlib HTTP server | Launches background scrape jobs + exposes status |
 | **Search client** | `ESClient` | Wraps ES queries: full-text search, filters, aggregations |
 | **Orchestration** | Docker Compose | Runs MongoDB, Elasticsearch, scraper, and webapp services |
 
@@ -60,16 +66,35 @@ The defaults work out of the box with Docker Compose. The only things you might 
 ### 2. Run
 
 ```bash
-# Start the infrastructure and the webapp
-docker compose up -d mongo elasticsearch webapp
-
-# Run the spider (waits for services, creates the ES index, then crawls)
-docker compose up scraper
+# Start all services (Mongo + ES + scraper worker + webapp)
+docker compose up -d
 ```
 
 ### 3. Open
 
 The webapp is at **http://localhost:8501**.
+
+Use the **Scraping** page in the webapp (sidebar navigation) to launch background jobs:
+- **Récupérer les nouveautés** (`latest`)
+- **Récupérer plus** (`backfill`)
+
+## Webapp Scraping Helper
+
+The project includes a dedicated helper page in Streamlit: **Scraping** (`webapp/pages/3_scraping.py`).
+
+This helper lets you launch scraping without running manual CLI commands:
+- **Récupérer les nouveautés**: incremental scan from page 1 with stop rules for already-known pages.
+- **Récupérer plus**: deeper backfill to fetch older unseen ouvrages.
+- **Actualiser**: refresh running/last job status.
+
+The helper displays:
+- job id, mode, status, start/end timestamps, return code
+- log file path in the scraper container
+- per-theme summary (`pages`, `nouveaux`, `stop reason`)
+
+Notes:
+- A `success` job can still have `Nouveaux ouvrages (run) : 0` if scanned pages only contain already-known `doc_id`.
+- Log paths like `/tmp/scraper_jobs/...` are inside the `scraper` container, not your host filesystem.
 
 ## Configuration
 
@@ -80,9 +105,14 @@ All settings go in your `.env` file. Copy `.env.example` to get started.
 | `MONGO_URI` | `mongodb://mongo:27017/cairn` | MongoDB connection string. Change `mongo` to `localhost` for local development outside Docker. |
 | `ES_HOST` | `http://elasticsearch:9200` | Elasticsearch URL. Change `elasticsearch` to `localhost` for local development outside Docker. |
 | `ES_INDEX` | `cairn_ouvrages` | Elasticsearch index name |
+| `SCRAPER_API_URL` | `http://scraper:8000` | URL used by Streamlit to trigger background scrape jobs |
 | `SCRAPE_MAX_PAGES` | `-1` (no limit) | Max listing pages to crawl per theme. Set to `3` for a quick test run. |
 | `SCRAPE_MAX_ITEMS_PER_THEME` | `200` | Max books to scrape per theme. `-1` for no limit. |
 | `SCRAPE_DOWNLOAD_DELAY` | `1` | Seconds to wait between requests (be nice to Cairn). |
+| `SCRAPE_LATEST_MIN_PAGES` | `3` | In `latest` mode, minimum pages scanned before stop is allowed |
+| `SCRAPE_LATEST_KNOWN_PAGE_STREAK` | `2` | In `latest` mode, stop after N consecutive listing pages with only known `doc_id` |
+| `SCRAPE_BACKFILL_PAGES_PER_RUN` | `3` | In `backfill` mode, number of listing pages scanned per run |
+| `SCRAPE_BACKFILL_MAX_NEW_ITEMS` | `50` | In `backfill` mode, maximum new ouvrages scheduled in one run (`-1` to disable) |
 
 With the defaults (200 items per theme × 3 themes = 600 ouvrages), scraping takes about 5 minutes.
 
@@ -102,23 +132,38 @@ Edit `.env` so the connection strings point to `localhost` instead of the Docker
 ```
 MONGO_URI=mongodb://localhost:27017/cairn
 ES_HOST=http://localhost:9200
+SCRAPER_API_URL=http://localhost:8000
 ```
 
-### Run the scraper
+### Run the scraper worker (background API)
 
 ```bash
-# Start the databases
-docker compose up -d mongo elasticsearch
+# Start the databases + worker API
+docker compose up -d mongo elasticsearch scraper
+```
 
-# Launch the spider
+Or locally (outside Docker):
+
+```bash
+uv run python scripts/scraper_worker.py
+```
+
+The worker exposes:
+- `POST /jobs/latest`
+- `POST /jobs/backfill`
+- `GET /jobs/status`
+
+### Run a one-shot spider manually (optional)
+
+```bash
 cd scraper && uv run scrapy crawl ouvrages
 ```
 
 ### Run the webapp
 
 ```bash
-# Make sure Elasticsearch is running
-docker compose up -d elasticsearch
+# Make sure Elasticsearch + scraper worker are running
+docker compose up -d elasticsearch scraper
 
 # (Optional) Seed test data so you don't need to scrape first
 uv run python webapp/tests/seed_fixtures.py
@@ -172,9 +217,11 @@ cairn-scraping/
 │   ├── app.py                 # Home page (landing + navigation)
 │   ├── pages/
 │   │   ├── 1_recherche.py     # Search page: full-text + faceted filters + detail dialog
-│   │   └── 2_statistiques.py  # Analytics: charts & distributions
+│   │   ├── 2_statistiques.py  # Analytics: charts & distributions
+│   │   └── 3_scraping.py      # Background scraping controls + job status
 │   ├── utils/
 │   │   ├── es_client.py       # ESClient: search, aggregations, get by ID
+│   │   ├── scraper_client.py  # HTTP client for scraper worker API
 │   │   └── components.py      # Reusable UI components (cards, filters)
 │   ├── tests/
 │   │   ├── fixtures.json      # Sample data for testing
@@ -183,6 +230,7 @@ cairn-scraping/
 │
 ├── scripts/                    # Utility scripts
 │   ├── bootstrap.py           # Orchestrates wait → init → crawl
+│   ├── scraper_worker.py      # Background API to launch scrape jobs
 │   ├── wait_for_services.py   # Health checks for MongoDB & Elasticsearch
 │   └── init_es_index.py       # Creates ES index with French analyzer mapping
 │

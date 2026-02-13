@@ -13,4 +13,4 @@ COPY scripts/ scripts/
 COPY scraper/ scraper/
 
 ENV PYTHONPATH=/app/scripts
-CMD ["uv", "run", "python", "scripts/bootstrap.py"]
+CMD ["uv", "run", "python", "scripts/scraper_worker.py"]

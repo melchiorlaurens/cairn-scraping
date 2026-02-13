@@ -32,6 +32,7 @@ services:
       dockerfile: webapp/Dockerfile
     depends_on:
       - elasticsearch
+      - scraper
     env_file: .env
     ports:
       - "8501:8501"
