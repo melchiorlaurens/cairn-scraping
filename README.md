@@ -67,6 +67,13 @@ docker compose up -d mongo elasticsearch webapp
 docker compose up scraper
 ```
 
+If `docker compose up scraper` fails, you can run the scraper locally instead:
+
+```bash
+uv sync --group scraper
+cd scraper && uv run scrapy crawl ouvrages
+```
+
 ### 3. Open
 
 The webapp is at **http://localhost:8501**.
