@@ -16,7 +16,7 @@ class MongoPipeline:
     def from_crawler(cls, crawler):
         return cls(mongo_uri=crawler.settings.get("MONGO_URI"))
 
-    def open_spider(self, spider):
+    def open_spider(self):
         parsed = urlparse(self.mongo_uri)
         db_name = parsed.path.lstrip("/") or "cairn"
         self.client = MongoClient(self.mongo_uri)
@@ -24,10 +24,10 @@ class MongoPipeline:
         self.collection = self.db["ouvrages"]
         logger.info("MongoPipeline connected to %s / %s", self.mongo_uri, db_name)
 
-    def close_spider(self, spider):
+    def close_spider(self):
         self.client.close()
 
-    def process_item(self, item, spider):
+    def process_item(self, item):
         adapter = ItemAdapter(item)
         doc = adapter.asdict()
         self.collection.replace_one(
@@ -50,14 +50,14 @@ class ElasticsearchPipeline:
             es_index=crawler.settings.get("ES_INDEX"),
         )
 
-    def open_spider(self, spider):
+    def open_spider(self):
         self.es = Elasticsearch(self.es_host)
         logger.info("ElasticsearchPipeline connected to %s", self.es_host)
 
-    def close_spider(self, spider):
+    def close_spider(self):
         self.es.close()
 
-    def process_item(self, item, spider):
+    def process_item(self, item):
         adapter = ItemAdapter(item)
         doc = adapter.asdict()
         self.es.index(
